@@ -5,6 +5,7 @@ import logging
 from pykafka.common import OffsetType
 import urllib2
 import json
+import urllib
 
 logging.basicConfig(level = logging.INFO)
 
@@ -25,10 +26,11 @@ while True:
         body = {'content' : request['body']}
         for i in range(0, 3):
             try:
-                handle = urllib2.urlopen(url, json.dumps(body), 5000)
+                handle = urllib2.urlopen(url, urllib.urlencode(body), 5000)
                 code = handle.getcode()
+                response = handle.read()
                 if code == 200:
-                    consumer_logger.info('finish {} wihtin {} times.'.format(url, i))
+                    consumer_logger.info('finish {} wihtin {} times. {}'.format(url, i, response))
                     break
             except:
                 pass
