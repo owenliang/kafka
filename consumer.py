@@ -6,6 +6,9 @@ from pykafka.common import OffsetType
 import urllib2
 import json
 import urllib
+import threading
+import SimpleHTTPServer
+import SocketServer
 
 logging.basicConfig(level = logging.INFO)
 
@@ -17,6 +20,30 @@ nmq = client.topics['nmq']
 
 consumer = nmq.get_balanced_consumer('balance-consumer', zookeeper_connect = 'localhost:3000,localhost:3001,localhost:3002/kafka', 
                                      auto_offset_reset = OffsetType.LATEST, auto_commit_enable = True, num_consumer_fetchers = 3)
+
+def httpd_main(consumer):
+    class ResetOffsetRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+        def __init__(self, request, client_addr, server):
+            SimpleHTTPServer.SimpleHTTPRequestHandler.__init__(self, request, client_addr, server)
+            self.consumer = consumer
+        def do_GET(self):
+            if self.path.startswith('/reset-offset'):
+                try:
+                    consumer.reset_offsets()
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write("succeed")
+                except:
+                    self.send_response(500)
+                    self.end_headers()
+                    self.wfile.write("fail")
+    SocketServer.TCPServer.allow_reuse_address = True
+    httpd = SocketServer.TCPServer(("", 8765), ResetOffsetRequestHandler)
+    httpd.serve_forever()
+
+httpd_thread = threading.Thread(target = httpd_main, args = (consumer, ))
+httpd_thread.setDaemon(True)
+httpd_thread.start()
 
 while True:
     msg = consumer.consume()
