@@ -13,5 +13,6 @@
 
 ##代码说明：
 * producer.py：命令行测试工具，发送一条消息
-* consumer.py：负载均衡的consumer，可以启动多个实例，partition将自动在多进程间负载均衡
+* consumer.py：负载均衡的consumer，可以启动多个实例，partition将自动在多进程间负载均衡，可通过Http通知其重置offset到队列末尾（运维常见场景）
 * offset_check.py：检查topic的各partition的offset总量和消费的offset量
+* offset_reset.py：根据consumer在zk上注册的http地址，逐个调用/reset-offset请求将consume offset调整至队列末尾
